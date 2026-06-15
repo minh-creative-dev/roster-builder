@@ -5,13 +5,13 @@ import {
   SAMPLE_NAMES, availFrom, allDays,
 } from "../data";
 import { T } from "../theme";
-import { fmt, round, shiftMath } from "../lib/time";
+import { fmt, round, shiftMath, shiftCompact } from "../lib/time";
 import { buildSampleWeek } from "../lib/roster";
 import { hasStore, storage } from "../storage";
-import { Chip, Dot, Section } from "./ui";
+import { Chip, Dot, DayToggle, Section } from "./ui";
 import {
   thS, tdS, inputS, timeS, selectS, dayCard, miniErr, miniWarn,
-  btnSolid, btnGhost, linkBtn,
+  btnSolid, btnGhost, linkBtn, gridHead, gridName, gridCell,
 } from "./styles";
 
 /* ---------- persistence ---------- */
@@ -149,6 +149,27 @@ export default function RosterBuilder() {
     return h;
   }, [staff, assign, templates]);
 
+  /* ---- staff × day grid (live review + CSV source) ---- */
+  const rosterGrid = useMemo(
+    () =>
+      staff.map((s) => ({
+        staff: s,
+        cells: DAYS.map((day) => {
+          const tpl = templates[DAY_TEMPLATE[day]];
+          const mine = tpl.positions.filter((p) => assign[day]?.[p.id] === s.id);
+          if (mine.length === 0) {
+            return { text: s.avail[day] ? "" : "N/A", off: !s.avail[day], clash: false };
+          }
+          return {
+            text: mine.map((p) => shiftCompact(p.start, p.end)).join(" / "),
+            off: false,
+            clash: mine.length > 1,
+          };
+        }),
+      })),
+    [staff, assign, templates],
+  );
+
   /* ---- per-day issues ---- */
   const dayIssues = useCallback((day: Day) => {
     const tpl = templates[DAY_TEMPLATE[day]];
@@ -203,17 +224,16 @@ export default function RosterBuilder() {
     URL.revokeObjectURL(url);
   };
 
+  // CSV mirrors the live grid above: a row per person, a column per day.
+  const csvRows = useCallback((): string[][] => {
+    const header = ["Name", ...DAYS];
+    const body = rosterGrid.map(({ staff: s, cells }) =>
+      [s.name || "(unnamed)", ...cells.map((c) => c.text)]);
+    return [header, ...body];
+  }, [rosterGrid]);
+
   const downloadCSV = () => {
-    const rows: string[][] = [["Day", "Shift", "Start", "End", "Paid hrs", "Staff"]];
-    for (const day of DAYS) {
-      const tpl = templates[DAY_TEMPLATE[day]];
-      for (const pos of tpl.positions) {
-        const who = assign[day]?.[pos.id];
-        rows.push([day, pos.name, fmt(pos.start), fmt(pos.end),
-          String(round(shiftMath(pos.start, pos.end).paid)),
-          who ? (staffById[who]?.name || "") : ""]);
-      }
-    }
+    const rows = csvRows();
     download("roster.csv", rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n"), "text/csv");
     flash("CSV downloaded");
   };
@@ -302,9 +322,11 @@ export default function RosterBuilder() {
                     </td>
                     {DAYS.map((d) => (
                       <td key={d} style={{ ...tdS, textAlign: "center" }}>
-                        <input type="checkbox" checked={!!s.avail[d]}
-                          onChange={() => toggleAvail(s.id, d)}
-                          style={{ accentColor: T.accent, width: 15, height: 15 }} />
+                        <DayToggle
+                          on={!!s.avail[d]}
+                          onToggle={() => toggleAvail(s.id, d)}
+                          label={`${s.name || "This person"} ${s.avail[d] ? "works" : "off"} ${d}`}
+                        />
                       </td>
                     ))}
                     <td style={{ ...tdS, textAlign: "right" }}>
@@ -389,6 +411,7 @@ export default function RosterBuilder() {
                       const who = assign[day]?.[pos.id] || "";
                       const clash = !!who && dbl.has(who);
                       const unavail = !!who && staffById[who] && !staffById[who].avail[day];
+                      const selBarista = !!who && !!staffById[who]?.barista;
                       return (
                         <div key={pos.id} style={{
                           border: `1px solid ${clash ? T.error : T.line}`,
@@ -405,10 +428,18 @@ export default function RosterBuilder() {
                               {"  "}· {round(m.paid)}h{m.br > 0 ? ` (−${(m.br * 60) | 0}m)` : ""}
                             </span>
                           </div>
-                          <select value={who} onChange={(e) => setCell(day, pos.id, e.target.value)} style={selectS}>
-                            <option value="">— unfilled —</option>
+                          <select
+                            value={who}
+                            onChange={(e) => setCell(day, pos.id, e.target.value)}
+                            style={{ ...selectS, color: selBarista ? T.barista : T.ink, fontWeight: selBarista ? 600 : 400 }}
+                          >
+                            <option value="" style={{ color: T.ink, fontWeight: 400 }}>— unfilled —</option>
                             {staff.map((s) => (
-                              <option key={s.id} value={s.id}>
+                              <option
+                                key={s.id}
+                                value={s.id}
+                                style={{ color: s.barista ? T.barista : T.ink, fontWeight: s.barista ? 600 : 400 }}
+                              >
                                 {(s.barista ? "● " : "") + (s.name || "(unnamed)") + (s.avail[day] ? "" : "  [off]")}
                               </option>
                             ))}
@@ -447,6 +478,45 @@ export default function RosterBuilder() {
                 </div>
               );
             })}
+          </div>
+        </Section>
+
+        {/* ROSTER GRID (live review = the CSV) */}
+        <Section
+          title="Roster grid"
+          sub="Names down the side, days across the top — the at-a-glance view. It updates live as you fill shifts, and it's exactly what “Download CSV” saves. N/A = marked off, blank = free."
+        >
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
+              <thead>
+                <tr>
+                  <th style={{ ...gridHead, textAlign: "left" }}>Name</th>
+                  {DAYS.map((d) => (
+                    <th key={d} style={{ ...gridHead, textAlign: "center" }}>{d}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rosterGrid.map(({ staff: s, cells }) => (
+                  <tr key={s.id}>
+                    <td style={gridName}>
+                      <span style={{ display: "flex", alignItems: "center" }}>
+                        {s.barista && <Dot />}
+                        {s.name || <span style={{ color: T.faint }}>(unnamed)</span>}
+                      </span>
+                    </td>
+                    {cells.map((c, i) => (
+                      <td key={i} style={{
+                        ...gridCell,
+                        background: c.clash ? T.errorBg : "transparent",
+                        color: c.off ? T.faint : c.clash ? T.error : T.ink,
+                        fontWeight: c.clash ? 700 : 400,
+                      }}>{c.text}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </Section>
 

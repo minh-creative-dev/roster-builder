@@ -31,7 +31,10 @@ npm run lint
 - **Sample team + auto-fill** — loads 8 named staff and fills a valid week
   (guarantees a barista per group, spreads hours, no double-booking). Greedy heuristic.
 - **Weekly hours summary** — paid hours per person against the cap.
-- **Export** — copy as text, download CSV, export/import full setup as JSON.
+- **Roster grid** — a live staff × day overview (names down the side, days across the top,
+  compact shift times in each cell, `N/A` for days off) that mirrors how a paper roster reads
+  and updates as you fill shifts. This is exactly what the CSV download contains.
+- **Export** — copy as text, download the grid as CSV, export/import full setup as JSON.
 - **Persistence** — everything is saved to `localStorage` (debounced) and restored on load.
 
 ## Domain rules

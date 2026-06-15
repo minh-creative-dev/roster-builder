@@ -13,3 +13,8 @@ export const miniWarn: CSSProperties = { color: T.warn, fontSize: 11, fontWeight
 export const btnSolid: CSSProperties = { background: T.accent, color: "#fff", border: "none", borderRadius: 7, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.sans };
 export const btnGhost: CSSProperties = { background: "#fff", color: T.ink, border: `1px solid ${T.line}`, borderRadius: 7, padding: "8px 13px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.sans, marginTop: 4 };
 export const linkBtn: CSSProperties = { background: "none", border: "none", color: T.faint, fontSize: 12, cursor: "pointer", textDecoration: "underline", fontFamily: T.sans };
+
+/* ---------- roster grid (staff × day) ---------- */
+export const gridHead: CSSProperties = { fontSize: 11, color: T.muted, fontWeight: 700, padding: "8px 10px", textTransform: "uppercase", letterSpacing: 0.4, border: `1px solid ${T.line}`, background: T.lineSoft, whiteSpace: "nowrap" };
+export const gridName: CSSProperties = { padding: "7px 10px", border: `1px solid ${T.line}`, fontWeight: 600, fontSize: 12.5, whiteSpace: "nowrap", background: "#FCFDFD" };
+export const gridCell: CSSProperties = { padding: "7px 10px", border: `1px solid ${T.line}`, textAlign: "center", fontFamily: T.mono, fontSize: 12.5, whiteSpace: "nowrap" };

@@ -22,6 +22,27 @@ export function Chip({ tone = "muted", children }: { tone?: Tone; children: Reac
   );
 }
 
+/** Round radio-style availability toggle: filled espresso dot = on, empty ring = off. */
+export function DayToggle({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      title={label}
+      onClick={onToggle}
+      style={{
+        width: 18, height: 18, padding: 0, borderRadius: "50%", cursor: "pointer",
+        background: "#fff", border: `1.5px solid ${on ? T.accent : T.line}`,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        verticalAlign: "middle", transition: "border-color 120ms",
+      }}
+    >
+      {on && <span style={{ width: 9, height: 9, borderRadius: "50%", background: T.accent }} />}
+    </button>
+  );
+}
+
 export function Dot() {
   return (
     <span title="barista" style={{
