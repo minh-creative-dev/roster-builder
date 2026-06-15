@@ -316,9 +316,12 @@ export default function RosterBuilder() {
                         style={inputS} />
                     </td>
                     <td style={{ ...tdS, textAlign: "center" }}>
-                      <input type="checkbox" checked={s.barista}
-                        onChange={(e) => patchStaff(s.id, { barista: e.target.checked })}
-                        style={{ accentColor: T.barista, width: 16, height: 16 }} />
+                      <DayToggle
+                        on={s.barista}
+                        onToggle={() => patchStaff(s.id, { barista: !s.barista })}
+                        color={T.barista}
+                        label={`${s.name || "This person"} ${s.barista ? "is" : "is not"} a barista`}
+                      />
                     </td>
                     {DAYS.map((d) => (
                       <td key={d} style={{ ...tdS, textAlign: "center" }}>
@@ -420,7 +423,6 @@ export default function RosterBuilder() {
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                             <span style={{ fontSize: 12.5, fontWeight: 600 }}>{pos.name}</span>
-                            {pos.baristaGroup && <span style={{ fontSize: 10, color: T.barista, fontWeight: 600 }}>needs barista</span>}
                           </div>
                           <div style={{ fontFamily: T.mono, fontSize: 12, color: T.muted, margin: "2px 0 6px" }}>
                             {fmt(pos.start)}–{fmt(pos.end)}
